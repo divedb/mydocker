@@ -5,6 +5,16 @@ set(CMAKE_CXX_STANDARD 20)
 
 enable_testing()
 
+include(FetchContent)
+FetchContent_Declare(
+    cli11_proj
+    QUIET
+    GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+    GIT_TAG v2.3.2
+)
+
+FetchContent_MakeAvailable(cli11_proj)
+
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR})
@@ -12,3 +22,6 @@ include_directories(${CMAKE_SOURCE_DIR})
 add_executable(cgroup_version_test test/cgroup_version_test.cc)
 target_link_libraries(cgroup_version_test PRIVATE ${GTEST_LIBRARIES} pthread)
 add_test(NAME CgroupVersionGTest COMMAND cgroup_version_test)
+
+add_executable(main main.cc)
+target_link_libraries(main PRIVATE CLI11::CLI11)

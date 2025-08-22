@@ -13,7 +13,17 @@ enum class CgroupVersion : uint8_t {
   kUnknown = 0x00
 };
 
-inline CgroupVersion ParseMountInfoLine(const std::string &line) {
+inline bool is_cgroup_v2_mounted(CgroupVersion version) {
+  return (static_cast<uint8_t>(version) &
+          static_cast<uint8_t>(CgroupVersion::kV2)) != 0;
+}
+
+inline bool is_cgroup_v1_mounted(CgroupVersion version) {
+  return (static_cast<uint8_t>(version) &
+          static_cast<uint8_t>(CgroupVersion::kV1)) != 0;
+}
+
+inline CgroupVersion parse_mount_info(const std::string &line) {
   auto pos = line.find(" - ");
 
   if (pos == std::string::npos) return CgroupVersion::kUnknown;
@@ -33,7 +43,7 @@ inline CgroupVersion ParseMountInfoLine(const std::string &line) {
     return CgroupVersion::kUnknown;
 }
 
-inline CgroupVersion GetCgroupVersion() {
+inline CgroupVersion parse_cgroup_version() {
   std::ifstream mountinfo("/proc/self/mountinfo");
 
   if (!mountinfo.is_open()) return CgroupVersion::kUnknown;
@@ -43,7 +53,7 @@ inline CgroupVersion GetCgroupVersion() {
   bool has_v2 = false;
 
   while (std::getline(mountinfo, line)) {
-    auto version = ParseMountInfoLine(line);
+    auto version = parse_mount_info(line);
 
     if (version == CgroupVersion::kV1) has_v1 = true;
     if (version == CgroupVersion::kV2) has_v2 = true;
