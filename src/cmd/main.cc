@@ -4,6 +4,12 @@
 #include <iostream>
 #include <vector>
 
+struct CommandLine {
+  bool tty;
+  bool interactive;
+  std::vector<std::string> remaining_args;
+};
+
 int main(int argc, char** argv) {
   CLI::App app;
 
