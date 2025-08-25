@@ -42,6 +42,13 @@ Status MemorySubsystem::Apply(const ResourceConfig& rc) {
   return Status::OK();
 }
 
+Status MemorySubsystem::Reset() {
+  MemoryConfig default_config;
+  ResourceConfig rc{.mem_config = default_config};
+
+  return Apply(rc);
+}
+
 Status MemorySubsystem::ApplyLimit(const fs::path& file, size_t value) {
   std::ofstream ofs(file);
 

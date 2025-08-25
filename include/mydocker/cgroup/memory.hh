@@ -14,8 +14,8 @@ class MemorySubsystem : public Subsystem {
       : Subsystem(std::move(cgroup_path)) {}
 
   Status Apply(const ResourceConfig& rc) override;
-  bool Reset() override;
-  const std::string& Name() const { return "memory"; }
+  Status Reset() override;
+  std::string_view Name() const { return "memory"; }
 
  private:
   Status ApplyLimit(const fs::path& file, size_t value);

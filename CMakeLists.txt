@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 project(mydocker)
 
 set(CMAKE_CXX_STANDARD 20)
-
+set(MYDOCKER_INDLUCE_DIR ${CMAKE_SOURCE_DIR}/include)
 enable_testing()
+
 
 include(FetchContent)
 FetchContent_Declare(
@@ -17,11 +18,7 @@ FetchContent_MakeAvailable(cli11_proj)
 
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
-include_directories(${CMAKE_SOURCE_DIR})
+find_package(glog REQUIRED)
 
-add_executable(cgroup_version_test test/cgroup_version_test.cc)
-target_link_libraries(cgroup_version_test PRIVATE ${GTEST_LIBRARIES} pthread)
-add_test(NAME CgroupVersionGTest COMMAND cgroup_version_test)
-
-add_executable(main main.cc)
-target_link_libraries(main PRIVATE CLI11::CLI11)
+add_subdirectory(src)
+add_subdirectory(tests)

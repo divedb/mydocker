@@ -14,21 +14,25 @@ class MemoryConfig;
 
 class CgroupManager {
  public:
-  explicit CgroupManager(const char* program_name);
+  CgroupManager();
   ~CgroupManager();
 
-  [[no_discard]] bool CreateCgroup(const std::string& cgroup_name);
-  void RemoveCgroup(const std::string& cgroup_name);
+  [[nodiscard]] bool CreateCgroup(const std::string& cgroup_name);
+  bool RemoveCgroup(const std::string& cgroup_name);
 
-  [[no_discard]] bool ConfigureMemory(const std::string& cgroup_name,
-                                      const MemoryConfig& config);
-  [[no_discard]] bool ConfigureCPU(const std::string& cgroup_name,
-                                   const CpuConfig& config);
+  [[nodiscard]] bool ConfigureMemory(const std::string& cgroup_name,
+                                     const MemoryConfig& config);
+  [[nodiscard]] bool ConfigureCPU(const std::string& cgroup_name,
+                                  const CpuConfig& config);
   void ResetMemoryConfiguration(const std::string& cgroup_name);
   void ResetCpuConfiguration(const std::string& cgroup_name);
 
+  const fs::path& CgroupMountPath() const { return cgroup_mount_path_; }
+
  private:
-  bool GetSubsystem(const std::string& cgroup_name, Subsystem* sys) const;
+  fs::path GetCgroupPath(const std::string& cgroup_name) const;
+  bool GetSubsystem(const std::string& cgroup_name, Subsystem*& sys) const;
+  bool RemoveCgroupDir(const fs::path& cgroup_path);
 
   bool cgroup_v2_mounted_;
   const fs::path cgroup_mount_path_ = "/sys/fs/cgroup/";

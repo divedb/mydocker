@@ -1,7 +1,7 @@
 #pragma once
 
 #include <filesystem>
-#include <string>
+#include <string_view>
 
 #include "mydocker/common/status.hh"
 
@@ -34,10 +34,10 @@ class Subsystem {
   Subsystem& operator=(const Subsystem&) = default;
   Subsystem& operator=(Subsystem&&) = default;
 
-  virtual bool Init() {}
+  virtual void Init() {}
   virtual Status Apply(const ResourceConfig& rc) = 0;
-  virtual bool Reset() = 0;
-  virtual const std::string& Name() const = 0;
+  virtual Status Reset() = 0;
+  virtual std::string_view Name() const = 0;
 
  protected:
   fs::path cgroup_path_;  ///< Path to the cgroup directory
