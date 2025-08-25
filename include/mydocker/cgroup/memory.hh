@@ -13,12 +13,12 @@ class MemorySubsystem : public Subsystem {
   explicit MemorySubsystem(std::string cgroup_path)
       : Subsystem(std::move(cgroup_path)) {}
 
-  bool Apply(const ResourceConfig& rc) override;
+  Status Apply(const ResourceConfig& rc) override;
   bool Reset() override;
   const std::string& Name() const { return "memory"; }
 
  private:
-  void ApplyLimit(const fs::path& file, size_t value);
+  Status ApplyLimit(const fs::path& file, size_t value);
 
   MemoryConfig cached_mem_config_;
 };

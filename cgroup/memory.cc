@@ -6,45 +6,56 @@
 
 namespace mydocker {
 
-bool MemorySubsystem::Apply(const ResourceConfig& rc) {
+Status MemorySubsystem::Apply(const ResourceConfig& rc) {
   const MemoryConfig& mem_config = rc.mem_config;
 
   // No changes needed.
-  if (cached_mem_config_ == mem_config) return true;
+  if (cached_mem_config_ == mem_config) return Status::OK();
 
-  if (mem_config.max_in_bytes != cached_mem_config_.max_in_bytes)
-    ApplyLimit(cgroup_path_ / "memory.max", mem_config.max_in_bytes);
+  auto apply_if_changed = [&](size_t MemoryConfig::*mptr,
+                              const std::string& filename) -> Status {
+    if (mem_config.*mptr != cached_mem_config_.*mptr)
+      return ApplyLimit(cgroup_path_ / filename, mem_config.*mptr);
 
-  if (mem_config.high_in_bytes != cached_mem_config_.high_in_bytes)
-    ApplyLimit(cgroup_path_ / "memory.high", mem_config.high_in_bytes);
+    return Status::OK();
+  };
 
-  if (mem_config.min_in_bytes != cached_mem_config_.min_in_bytes)
-    ApplyLimit(cgroup_path_ / "memory.min", mem_config.min_in_bytes);
+  if (Status s = apply_if_changed(&MemoryConfig::max_in_bytes, "memory.max");
+      !s)
+    return s;
 
-  if (mem_config.low_in_bytes != cached_mem_config_.low_in_bytes)
-    ApplyLimit(cgroup_path_ / "memory.low", mem_config.low_in_bytes);
+  if (Status s = apply_if_changed(&MemoryConfig::high_in_bytes, "memory.high");
+      !s)
+    return s;
+
+  if (Status s = apply_if_changed(&MemoryConfig::min_in_bytes, "memory.min");
+      !s)
+    return s;
+
+  if (Status s = apply_if_changed(&MemoryConfig::low_in_bytes, "memory.low");
+      !s)
+    return s;
 
   // Cache the configuration.
   cached_mem_config_ = mem_config;
 
-  return true;
+  return Status::OK();
 }
 
-void MemorySubsystem::ApplyLimit(const fs::path& file, size_t value) {
+Status MemorySubsystem::ApplyLimit(const fs::path& file, size_t value) {
   std::ofstream ofs(file);
 
-  if (!ofs.is_open()) {
-    LOG(ERROR) << "Failed to open " << file;
-
-    return;
-  }
+  if (!ofs.is_open()) return Status::Error("Failed to open " + file.string());
 
   if (value == static_cast<size_t>(-1))
     ofs << "max";
   else
     ofs << value;
 
-  ofs.close();
+  if (!ofs.good())
+    return Status::Error("Failed to write value to " + file.string());
+
+  return Status::OK();
 }
 
 }  // namespace mydocker

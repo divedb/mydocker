@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <string>
 
+#include "mydocker/common/status.hh"
+
 namespace fs = std::filesystem;
 
 namespace mydocker {
@@ -33,7 +35,7 @@ class Subsystem {
   Subsystem& operator=(Subsystem&&) = default;
 
   virtual bool Init() {}
-  virtual bool Apply(const ResourceConfig& config) = 0;
+  virtual Status Apply(const ResourceConfig& rc) = 0;
   virtual bool Reset() = 0;
   virtual const std::string& Name() const = 0;
 
