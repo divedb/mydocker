@@ -2,36 +2,25 @@
 
 #include <string>
 
-namespace mydocker {
+#include "mydocker/cgroup/subsystem.hh"
 
-struct MemoryConfig {
-  std::string max_in_bytes = "max";   ///< Default: no limit
-  std::string high_in_bytes = "max";  ///< Default: no limit
-  std::string min_in_bytes = "0";     ///< Default: no minimum
-  std::string low_in_bytes = "0";     ///< Default: no minimum
-};
+namespace mydocker {
 
 class CgroupManager;  ///< Forward declaration
 
-class MemorySubsystem {
+class MemorySubsystem : public Subsystem {
  public:
-  MemorySubsystem() = default;
-  ~MemorySubsystem() = default;
+  explicit MemorySubsystem(std::string cgroup_path)
+      : Subsystem(std::move(cgroup_path)) {}
 
-  // Initialize the memory subsystem
-  bool Init();
-
-  // Apply the memory configuration to the cgroup
-  bool Apply(const MemoryConfig& config);
-
-  // Remove the cgroup
-  bool Remove();
-
-  // Get the name of the subsystem
-  std::string Name() const { return "memory"; }
+  bool Apply(const ResourceConfig& rc) override;
+  bool Reset() override;
+  const std::string& Name() const { return "memory"; }
 
  private:
-  std::string cgroup_path_;  ///< Path to the cgroup directory
+  void ApplyLimit(const fs::path& file, size_t value);
+
+  MemoryConfig cached_mem_config_;
 };
 
 }  // namespace mydocker
