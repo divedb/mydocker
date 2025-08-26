@@ -1,34 +1,31 @@
 #include <glog/logging.h>
+#include <unistd.h>
 
-#include <CLI/CLI.hpp>
 #include <iostream>
 #include <vector>
 
-struct CommandLine {
-  bool tty;
-  bool interactive;
-  std::vector<std::string> remaining_args;
-};
+#include "mydocker/cgroup/cgroup_manager.hh"
+#include "mydocker/common/cmd.hh"
 
 int main(int argc, char** argv) {
-  CLI::App app;
+  google::InitGoogleLogging(argv[0]);
+  auto cmd = mydocker::parse_command_line(argc, argv);
 
-  auto run = app.add_subcommand("run", "Run a container");
-  bool tty = false;
-  bool interactive = false;
-
-  run->add_flag("-t", tty, "Allocate a pseudo-TTY");
-  run->add_flag("-i", interactive, "Keep STDIN open");
-
-  std::vector<std::string> remaining_args;
-  run->add_option("command", remaining_args, "Command to run")->expected(-1);
-
-  CLI11_PARSE(app, argc, argv);
-
-  if (*run) {
-    std::cout << "Remaining arguments:\n";
-    for (auto& arg : remaining_args) std::cout << "  " << arg << "\n";
+  if (!cmd.has_value()) {
+    std::cout << "invalid usage\n";
+    return 1;
   }
 
-  google::InitGoogleLogging(argv[0]);
+  pid_t pid = fork();
+
+  if (pid < 0) {
+    perror("fork");
+  }
+
+  if (pid == 0) {
+    printf("pid = %d\n", pid);
+    printf("pid2 = %d\n", getpid());
+
+    mydocker::CgroupManager cm;
+  }
 }

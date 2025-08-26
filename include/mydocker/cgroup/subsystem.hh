@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
 #include <string_view>
 
 #include "mydocker/common/status.hh"
@@ -43,6 +44,9 @@ class Subsystem {
   fs::path cgroup_path_;  ///< Path to the cgroup directory
 };
 
-enum class SubsystemType : int { kMemory, kCpu };
+enum SubsystemType : int { kMemory = 0, kCpu = 1, kMaxSubsystem };
+
+std::unique_ptr<Subsystem> make_default_subsystem(const fs::path& cgroup_path,
+                                                  SubsystemType stype);
 
 }  // namespace mydocker

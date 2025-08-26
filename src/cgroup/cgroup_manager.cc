@@ -47,8 +47,8 @@ bool CgroupManager::CreateCgroup(const std::string& cgroup_name) {
     return false;
   }
 
-  cgroup_name_to_subs_.emplace(cgroup_name,
-                               std::make_unique<MemorySubsystem>(cgroup_path));
+  V v;
+  cgroup_name_to_subs_.emplace(cgroup_name, std::move(v));
 
   return true;
 }
@@ -70,7 +70,7 @@ bool CgroupManager::ConfigureMemory(const std::string& cgroup_name,
 
   Subsystem* sys;
 
-  if (!GetSubsystem(cgroup_name, sys)) return false;
+  if (!GetSubsystem(cgroup_name, kMemory, sys)) return false;
 
   return sys->Apply({.mem_config = config});
 }
@@ -80,7 +80,7 @@ fs::path CgroupManager::GetCgroupPath(const std::string& cgroup_name) const {
 }
 
 bool CgroupManager::GetSubsystem(const std::string& cgroup_name,
-                                 Subsystem*& sys) const {
+                                 SubsystemType stype, Subsystem*& sys) const {
   auto it = cgroup_name_to_subs_.find(cgroup_name);
 
   if (it == cgroup_name_to_subs_.end()) {
@@ -89,7 +89,7 @@ bool CgroupManager::GetSubsystem(const std::string& cgroup_name,
     return false;
   }
 
-  sys = it->second.get();
+  sys = it->second[stype].get();
 
   return true;
 }
@@ -105,6 +105,13 @@ bool CgroupManager::RemoveCgroupDir(const fs::path& cgroup_path) {
   }
 
   return true;
+}
+
+[[nodiscard]] bool CgroupManager::Apply(const std::string& cgroup_name,
+                                        pid_t pid) {
+  Subsystem* sys;
+
+  if (!GetSubsystem(cgroup_name, sys)) return false;
 }
 
 }  // namespace mydocker
