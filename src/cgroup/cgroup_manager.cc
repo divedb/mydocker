@@ -23,95 +23,84 @@ CgroupManager::CgroupManager() {
   cgroup_v2_mounted_ = is_cgroup_v2_mounted(version);
 }
 
-CgroupManager::~CgroupManager() {
-  for (auto& [name, _] : cgroup_name_to_subs_)
-    RemoveCgroupDir(GetCgroupPath(name));
-}
-
 bool CgroupManager::CreateCgroup(const std::string& cgroup_name) {
   CHECK_CGROUP_V2_IS_SUPPORTED();
 
+  if (Cgroup * cgroup; GetCgroup(cgroup_name, cgroup, false)) {
+    LOG(WARNING) << cgroup_name << " has existed.";
+
+    return true;
+  }
+
   std::error_code ec;
-  auto const cgroup_path = GetCgroupPath(cgroup_name);
+  auto const cgroup_path = CgroupAbsPath(cgroup_name);
 
   // Deletes the contents of p (if it is a directory) and the contents of all
   // its subdirectories, recursively, then deletes p itself as if by repeatedly
   // applying the POSIX remove. Symlinks are not followed (symlink is removed,
   // not its target).
-  if (fs::exists(cgroup_path) && !RemoveCgroupDir(cgroup_path)) return false;
+  if (!fs::exists(cgroup_path)) {
+    if (!fs::create_directory(cgroup_path, ec) || ec) {
+      LOG(ERROR) << "failed to create cgroup directory '" << cgroup_path
+                 << "': " << ec.message();
 
-  if (!fs::create_directory(cgroup_path, ec) || ec) {
-    LOG(ERROR) << "Failed to create cgroup directory '" << cgroup_path
-               << "': " << ec.message();
-
-    return false;
+      return false;
+    }
   }
 
-  V v;
-  cgroup_name_to_subs_.emplace(cgroup_name, std::move(v));
+  name_to_cgroups_.emplace(
+      cgroup_name, std::make_unique<Cgroup>(*this, std::move(cgroup_path)));
 
   return true;
 }
 
 bool CgroupManager::RemoveCgroup(const std::string& cgroup_name) {
-  std::error_code ec;
-  auto const cgroup_path = GetCgroupPath(cgroup_name);
+  auto it = name_to_cgroups_.find(cgroup_name);
 
-  if (!RemoveCgroupDir(cgroup_path)) return false;
+  if (it == name_to_cgroups_.end()) {
+    LOG(WARNING) << "failed to remove cgroup name '" << cgroup_name
+                 << "' that doesn't exist.";
 
-  cgroup_name_to_subs_.erase(cgroup_name);
+    return false;
+  }
+
+  name_to_cgroups_.erase(it);
 
   return true;
 }
 
 bool CgroupManager::ConfigureMemory(const std::string& cgroup_name,
-                                    const MemoryConfig& config) {
+                                    const MemoryConfig& mem_config) {
   CHECK_CGROUP_V2_IS_SUPPORTED();
 
-  Subsystem* sys;
+  if (Cgroup * cgroup; GetCgroup(cgroup_name, cgroup))
+    return cgroup->ConfigureMemory(mem_config);
 
-  if (!GetSubsystem(cgroup_name, kMemory, sys)) return false;
-
-  return sys->Apply({.mem_config = config});
+  return false;
 }
 
-fs::path CgroupManager::GetCgroupPath(const std::string& cgroup_name) const {
-  return cgroup_mount_path_ / cgroup_name;
-}
+bool CgroupManager::GetCgroup(const std::string& cgroup_name, Cgroup*& cgroup,
+                              bool verbose) const {
+  auto it = name_to_cgroups_.find(cgroup_name);
 
-bool CgroupManager::GetSubsystem(const std::string& cgroup_name,
-                                 SubsystemType stype, Subsystem*& sys) const {
-  auto it = cgroup_name_to_subs_.find(cgroup_name);
-
-  if (it == cgroup_name_to_subs_.end()) {
-    LOG(WARNING) << "Create cgroup before making any configuration.";
+  if (it == name_to_cgroups_.end()) {
+    if (verbose)
+      LOG(WARNING) << cgroup_name << " doesn't exist and create it first.";
 
     return false;
   }
 
-  sys = it->second[stype].get();
-
-  return true;
-}
-
-bool CgroupManager::RemoveCgroupDir(const fs::path& cgroup_path) {
-  std::error_code ec;
-
-  if (fs::remove(cgroup_path, ec) == static_cast<uintmax_t>(-1) || ec) {
-    LOG(WARNING) << "Failed to remove cgroup '" << cgroup_path
-                 << "': " << ec.message();
-
-    return false;
-  }
+  cgroup = it->second.get();
 
   return true;
 }
 
 [[nodiscard]] bool CgroupManager::Apply(const std::string& cgroup_name,
                                         pid_t pid) {
-  Subsystem* sys;
+  CHECK_CGROUP_V2_IS_SUPPORTED();
 
-  if (!GetSubsystem(cgroup_name, sys)) return false;
+  if (Cgroup * cgroup; GetCgroup(cgroup_name, cgroup)) {
+  }
 }
 
 }  // namespace mydocker

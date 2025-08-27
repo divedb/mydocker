@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-#include "mydocker/cgroup/subsystem.hh"
+#include "mydocker/cgroup/cgroup.hh"
 
 namespace mydocker {
 
@@ -16,40 +16,35 @@ class MemoryConfig;
 class CgroupManager {
  public:
   CgroupManager();
-  ~CgroupManager();
 
   [[nodiscard]] bool CreateCgroup(const std::string& cgroup_name);
   bool RemoveCgroup(const std::string& cgroup_name);
 
   [[nodiscard]] bool ConfigureMemory(const std::string& cgroup_name,
-                                     const MemoryConfig& config);
+                                     const MemoryConfig& mem_config);
   [[nodiscard]] bool ConfigureCPU(const std::string& cgroup_name,
                                   const CpuConfig& config);
   void ResetMemoryConfiguration(const std::string& cgroup_name);
   void ResetCpuConfiguration(const std::string& cgroup_name);
 
-  const fs::path& CgroupMountPath() const { return cgroup_mount_path_; }
-
   [[nodiscard]] bool Apply(const std::string& cgroup_name, pid_t pid);
 
+  const fs::path& CgroupMountPath() const { return cgroup_mount_path_; }
+
  private:
-  /// Represents a directory under /sys/fs/cgroup/, e.g., "mydir" or
-  /// "subgroup/mydir".
-  using K = std::string;
+  fs::path CgroupAbsPath(const std::string& cgroup_name) const {
+    return cgroup_mount_path_ / cgroup_name;
+  }
 
-  /// The array of controllers (subsystems) managed by this cgroup.
-  /// Each element is a unique pointer to a Subsystem object,
-  /// representing a specific controller under this cgroup path.
-  using V = std::map<SubsystemType, std::unique_ptr<Subsystem>>;
-
-  fs::path GetCgroupPath(const std::string& cgroup_name) const;
-  bool GetSubsystem(const std::string& cgroup_name, SubsystemType stype,
-                    Subsystem*& sys) const;
-  bool RemoveCgroupDir(const fs::path& cgroup_path);
+  bool GetCgroup(const std::string& cgroup_name, Cgroup*& cgroup,
+                 bool verbose = true) const;
 
   bool cgroup_v2_mounted_;
   const fs::path cgroup_mount_path_ = "/sys/fs/cgroup/";
-  std::map<K, V> cgroup_name_to_subs_;
+
+  /// The key represents a directory under /sys/fs/cgroup/, e.g., "mydir" or
+  /// "subgroup/mydir".
+  std::map<std::string, std::unique_ptr<Cgroup>> name_to_cgroups_;
 };
 
 }  // namespace mydocker
