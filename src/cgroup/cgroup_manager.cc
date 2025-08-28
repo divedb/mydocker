@@ -24,11 +24,11 @@ CgroupManager::CgroupManager() {
 }
 
 CgroupManager::~CgroupManager() {
-  for (auto& [_, cgroup] : name_to_cgroups_) {
-    Status status = cgroup->Destroy();
+  // for (auto& [_, cgroup] : name_to_cgroups_) {
+  //   Status status = cgroup->Destroy();
 
-    if (status.HasError()) LOG(ERROR) << status.Message();
-  }
+  //   if (status.HasError()) LOG(ERROR) << status.Message();
+  // }
 }
 
 bool CgroupManager::CreateCgroup(const std::string& cgroup_name) {

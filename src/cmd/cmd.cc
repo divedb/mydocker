@@ -12,6 +12,7 @@ std::optional<CommandLine> parse_command_line(int argc, char** argv) {
 
   run->add_flag("-t", result.tty, "Allocate a pseudo-TTY");
   run->add_flag("-i", result.interactive, "Keep STDIN open");
+  run->add_flag("-m", result.mem_config, "Set memory limit");
   run->add_option("command", result.remaining_args, "Command to run")
       ->expected(-1);
 

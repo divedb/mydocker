@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <iostream>
@@ -11,6 +12,8 @@ int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
   auto cmd = mydocker::parse_command_line(argc, argv);
 
+  std::cout << "what happened\n";
+
   if (!cmd.has_value()) {
     std::cout << "invalid usage\n";
     return 1;
@@ -18,14 +21,14 @@ int main(int argc, char** argv) {
 
   pid_t pid = fork();
 
-  if (pid < 0) {
-    perror("fork");
-  }
+  if (pid < 0) perror("fork");
 
   if (pid == 0) {
-    printf("pid = %d\n", pid);
-    printf("pid2 = %d\n", getpid());
-
     mydocker::CgroupManager cm;
+
+    exit(2);
   }
+
+  int status;
+  waitpid(pid, &status, 0);
 }
