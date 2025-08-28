@@ -1,6 +1,8 @@
 #include "mydocker/cgroup/cgroup.hh"
 
+#include <errno.h>
 #include <glog/logging.h>
+#include <string.h>
 
 #include <fstream>
 
@@ -29,8 +31,12 @@ Status Cgroup::ResetMemoryConfiguration() {
 Status Cgroup::ResetCpuConfiguration() { return Status::OK(); }
 
 Status Cgroup::Destroy() {
-  MoveProcsToRoot();
-  RemoveCgroup();
+  Status s1 = MoveProcsToRoot();
+  Status s2 = RemoveCgroup();
+
+  if (s1.HasError()) return s1;
+
+  return s2;
 }
 
 Status Cgroup::MoveProcsToRoot() {
@@ -39,34 +45,46 @@ Status Cgroup::MoveProcsToRoot() {
   auto root_cgroup = cgroup_manager_.CgroupMountPath() / "cgroup.procs";
   std::ofstream ofs(root_cgroup);
 
-  if (!ofs.is_open()) {
-    LOG(ERROR) << "failed to open " << root_cgroup.string();
-    return;
-  }
+  if (!ofs.is_open())
+    return Status::Error("failed to open " + root_cgroup.string());
 
   std::ifstream ifs(cgroup_path_);
 
-  if (!ifs.is_open()) {
-    LOG(ERROR) << "failed to open " << cgroup_path_.string();
-    return;
-  }
+  if (!ifs.is_open())
+    return Status::Error("failed to open " + cgroup_path_.string());
 
   std::string pid;
 
   while (std::getline(ifs, pid)) {
     ofs << pid << '\n';
   }
+
+  return Status::OK();
 }
 
 Status Cgroup::RemoveCgroup() {
   std::error_code ec;
 
-  if (!fs::remove(cgroup_path_, ec) || ec) {
-    LOG(ERROR) << "failed to remove '" << cgroup_path_.string()
-               << "':" << ec.message();
-  }
+  if (!fs::remove(cgroup_path_, ec) || ec)
+    return Status::Error("failed to remove '" + cgroup_path_.string() +
+                         "':" + ec.message());
+
+  return Status::OK();
 }
 
-Status Cgroup::Apply(pid_t pid) {}
+Status Cgroup::Apply(pid_t pid) {
+  fs::path path = cgroup_path_ / "cgroup.procs";
+  std::ofstream ofs(path);
+
+  if (!ofs.is_open()) return Status::Error("failed to open " + path.string());
+
+  ofs << pid;
+
+  if (!ofs)
+    return Status::Error("failed to write pid " + std::to_string(pid) + " to " +
+                         path.string() + ": " + strerror(errno));
+
+  return Status::OK();
+}
 
 }  // namespace mydocker

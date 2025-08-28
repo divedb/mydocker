@@ -48,7 +48,7 @@ TEST_F(CgroupManagerTest, RemoveCgroup_Success) {
 TEST_F(CgroupManagerTest, RemoveCgroup_NonExistent) {
   std::string cg_name = "cg4";
   // Should not throw or crash
-  manager_->RemoveCgroup(cg_name);
+  EXPECT_FALSE(manager_->RemoveCgroup(cg_name));
 }
 
 TEST_F(CgroupManagerTest, ConfigureMemory_Success) {

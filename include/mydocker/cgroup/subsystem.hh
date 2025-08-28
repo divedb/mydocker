@@ -46,7 +46,4 @@ class Subsystem {
 
 enum SubsystemType : int { kMemory = 0, kCpu = 1, kMaxSubsystem };
 
-std::unique_ptr<Subsystem> make_default_subsystem(const fs::path& cgroup_path,
-                                                  SubsystemType stype);
-
 }  // namespace mydocker

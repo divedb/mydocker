@@ -23,6 +23,14 @@ CgroupManager::CgroupManager() {
   cgroup_v2_mounted_ = is_cgroup_v2_mounted(version);
 }
 
+CgroupManager::~CgroupManager() {
+  for (auto& [_, cgroup] : name_to_cgroups_) {
+    Status status = cgroup->Destroy();
+
+    if (status.HasError()) LOG(ERROR) << status.Message();
+  }
+}
+
 bool CgroupManager::CreateCgroup(const std::string& cgroup_name) {
   CHECK_CGROUP_V2_IS_SUPPORTED();
 
@@ -99,8 +107,19 @@ bool CgroupManager::GetCgroup(const std::string& cgroup_name, Cgroup*& cgroup,
                                         pid_t pid) {
   CHECK_CGROUP_V2_IS_SUPPORTED();
 
-  if (Cgroup * cgroup; GetCgroup(cgroup_name, cgroup)) {
+  Cgroup* cgroup;
+
+  if (!GetCgroup(cgroup_name, cgroup)) return false;
+
+  Status status = cgroup->Apply(pid);
+
+  if (status.HasError()) {
+    LOG(ERROR) << status.Message();
+
+    return false;
   }
+
+  return true;
 }
 
 }  // namespace mydocker

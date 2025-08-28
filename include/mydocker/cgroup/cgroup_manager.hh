@@ -16,6 +16,7 @@ class MemoryConfig;
 class CgroupManager {
  public:
   CgroupManager();
+  ~CgroupManager();
 
   [[nodiscard]] bool CreateCgroup(const std::string& cgroup_name);
   bool RemoveCgroup(const std::string& cgroup_name);
